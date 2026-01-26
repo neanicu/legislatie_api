@@ -1,0 +1,7 @@
+streamlit
+pandas
+zeep
+requests
+beautifulsoup4
+python-dotenv
+diskcache

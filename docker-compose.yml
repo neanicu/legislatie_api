@@ -1,0 +1,129 @@
+# Docker Compose configuration for Romanian Legislative API Client
+# Supports development and production profiles
+
+version: '3.8'
+
+services:
+  # Main application service
+  legislatie-app:
+    build:
+      context: .
+      target: ${DOCKER_BUILD_TARGET:-runtime}
+    image: legislatie-api:${DOCKER_TAG:-latest}
+    container_name: legislatie-api
+    restart: ${RESTART_POLICY:-unless-stopped}
+    profiles:
+      - production
+      - development
+    ports:
+      - "${STREAMLIT_PORT:-8501}:8501"
+    environment:
+      - TZ=Europe/Bucharest
+      - LEGISLATIE_WSDL_URL=${LEGISLATIE_WSDL_URL:-https://legislatie.just.ro/apiws/FreeWebService.svc?wsdl}
+      - LEGISLATIE_SOAP_ENDPOINT=${LEGISLATIE_SOAP_ENDPOINT:-https://legislatie.just.ro/apiws/FreeWebService.svc/SOAP}
+      - LEGISLATIE_BASE_URL=${LEGISLATIE_BASE_URL:-https://legislatie.just.ro}
+      - LEGISLATIE_REQUEST_DELAY=${LEGISLATIE_REQUEST_DELAY:-1.0}
+      - LEGISLATIE_MAX_RETRIES=${LEGISLATIE_MAX_RETRIES:-3}
+      - LEGISLATIE_CACHE_TTL=${LEGISLATIE_CACHE_TTL:-3600}
+      - LEGISLATIE_CACHE_PATH=${LEGISLATIE_CACHE_PATH:-/.legislatie_cache}
+      - LEGISLATIE_USE_PERSISTENT_CACHE=${LEGISLATIE_USE_PERSISTENT_CACHE:-true}
+      - LEGISLATIE_REQUEST_TIMEOUT=${LEGISLATIE_REQUEST_TIMEOUT:-30}
+      - LEGISLATIE_SOAP_TIMEOUT=${LEGISLATIE_SOAP_TIMEOUT:-30}
+      - LEGISLATIE_LOG_LEVEL=${LEGISLATIE_LOG_LEVEL:-INFO}
+      - LEGISLATIE_LOG_FILE=${LEGISLATIE_LOG_FILE:-/app/legislatie.log}
+    volumes:
+      - legislatie-cache:/.legislatie_cache
+      - ./logs:/app/logs:rw
+    healthcheck:
+      test: ["CMD", "python", "-c", "from legislatie_client import LegislatieClient; client = LegislatieClient(); health = client.check_health(); exit(0 if health['overall'] == 'healthy' else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - legislatie-network
+    command: streamlit run streamlit_app.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true
+
+  # Development service with hot-reload and debugging
+  legislatie-dev:
+    build:
+      context: .
+      target: development
+    image: legislatie-api-dev:latest
+    container_name: legislatie-api-dev
+    restart: "no"
+    profiles:
+      - development
+    ports:
+      - "${STREAMLIT_PORT:-8501}:8501"
+      - "5678:5678"  # Debug port for Python debugpy
+    environment:
+      - TZ=Europe/Bucharest
+      - LEGISLATIE_USE_PERSISTENT_CACHE=${LEGISLATIE_USE_PERSISTENT_CACHE:-false}
+      - LEGISLATIE_LOG_LEVEL=DEBUG
+      - PYTHONPATH=/app
+    volumes:
+      - .:/app:rw
+      - /app/.legislatie_cache  # Anonymous volume for development cache
+      - /app/__pycache__  # Anonymous volume for Python cache
+    networks:
+      - legislatie-network
+    stdin_open: true
+    tty: true
+    command: >
+      sh -c "pip install --user -r requirements.txt &&
+             streamlit run streamlit_app.py --server.port=8501 --server.address=0.0.0.0"
+
+  # Testing service (run tests)
+  legislatie-test:
+    build:
+      context: .
+      target: development
+    image: legislatie-api-test:latest
+    container_name: legislatie-api-test
+    restart: "no"
+    profiles:
+      - test
+    environment:
+      - TZ=Europe/Bucharest
+      - LEGISLATIE_USE_PERSISTENT_CACHE=false
+      - LEGISLATIE_LOG_LEVEL=WARNING
+      - PYTHONPATH=/app
+    volumes:
+      - .:/app:rw
+      - test-cache:/tmp/test_cache:rw
+    networks:
+      - legislatie-network
+    command: >
+      sh -c "pip install --user -r requirements.txt &&
+             pip install --user pytest pytest-mock pytest-asyncio &&
+             pytest -v --tb=short"
+
+  # Health check service (standalone health monitoring)
+  legislatie-health:
+    build:
+      context: .
+      target: runtime
+    image: legislatie-api:${DOCKER_TAG:-latest}
+    container_name: legislatie-health
+    restart: "no"
+    profiles:
+      - monitoring
+    environment:
+      - TZ=Europe/Bucharest
+    networks:
+      - legislatie-network
+    command: python legislatie_client.py --health
+
+# Volumes
+volumes:
+  legislatie-cache:
+    name: legislatie-cache-data
+  test-cache:
+    name: legislatie-test-cache
+
+# Networks
+networks:
+  legislatie-network:
+    name: legislatie-network
+    driver: bridge
