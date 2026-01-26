@@ -157,6 +157,27 @@ services:
     networks:
       - legislatie-network
 
+  # Load testing with Locust
+  locust:
+    build:
+      context: .
+      target: development
+    container_name: legislatie-locust
+    restart: "no"
+    profiles:
+      - load-test
+    ports:
+      - "8089:8089"
+    volumes:
+      - ./load_test:/app/load_test:ro
+      - ./requirements-dev.txt:/app/requirements-dev.txt:ro
+    working_dir: /app
+    command: >
+      sh -c "pip install --user locust &&
+             locust -f load_test/locustfile.py"
+    networks:
+      - legislatie-network
+
 # Volumes
 volumes:
   legislatie-cache:

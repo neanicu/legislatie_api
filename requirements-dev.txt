@@ -28,3 +28,4 @@ sphinx-rtd-theme>=1.0.0
 # Debugging
 ipython>=8.0.0
 debugpy>=1.6.0
+locust>=2.0.0
