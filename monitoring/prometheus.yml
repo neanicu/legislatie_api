@@ -1,0 +1,33 @@
+# Prometheus configuration for Legislatie API monitoring
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Rule files
+rule_files:
+  # - "first_rules.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Legislatie API monitoring server
+  - job_name: 'legislatie-api'
+    static_configs:
+      - targets: ['legislatie-app:9090']
+    metrics_path: '/metrics/prometheus'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Legislatie health checks
+  - job_name: 'legislatie-health'
+    static_configs:
+      - targets: ['legislatie-health:9090']
+    metrics_path: '/health'
+    scrape_interval: 60s
+    scrape_timeout: 30s
+    # Health endpoint returns JSON, not Prometheus metrics
+    # This is for service discovery only

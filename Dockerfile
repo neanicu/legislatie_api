@@ -75,6 +75,7 @@ ENV PATH="/home/appuser/.local/bin:$PATH"
 RUN python -c "import streamlit; import zeep; import diskcache; print('Dependencies verified')"
 
 # Expose Streamlit port
+EXPOSE 9090
 EXPOSE 8501
 
 # Health check for application
@@ -82,7 +83,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "from legislatie_client import LegislatieClient; client = LegislatieClient(); health = client.check_health(); exit(0 if health['overall'] == 'healthy' else 1)"
 
 # Default command: run Streamlit app
-CMD ["streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0", "--server.headless=true"]
+CMD ["./start.sh"]
 
 # ===== DEVELOPMENT STAGE (optional) =====
 # To use: docker build --target=development -t legislatie-dev .

@@ -60,6 +60,37 @@ Acest proiect include un pipeline CI/CD configurat cu GitHub Actions care ruleaz
 
 Configurația se găsește în `.github/workflows/python-ci.yml`. Pentru a utiliza badge-ul de status în README, înlocuiți `OWNER/REPO` cu numele repository-ului dvs. GitHub.
 
+## Monitoring Dashboard
+
+Acest proiect include un dashboard de monitoring bazat pe Prometheus și Grafana pentru monitorizarea performanței și sănătății aplicației.
+
+### Componente:
+- **Prometheus**: colectează metrici de la serverul de monitoring (port 9090)
+- **Grafana**: dashboard vizual pentru metrici (port 3000)
+- **Server de monitoring**: expune metrici Prometheus la endpoint-ul `/metrics/prometheus`
+
+### Pornire dashboard:
+
+```bash
+docker-compose --profile monitoring up -d
+```
+
+Accesează:
+- **Grafana**: http://localhost:3000 (admin/admin)
+- **Prometheus**: http://localhost:9090
+- **Metrici aplicație**: http://localhost:9090/metrics/prometheus
+
+Dashboard-ul predefinit include:
+- Rata de request-uri (requests/sec)
+- Status sănătate (SOAP, scraper, cache)
+- Număr de erori
+- Dimensiune cache
+
+### Configurare avansată:
+- Adaugă noi metrici în `monitoring.py`
+- Modifică dashboard-ul în Grafana (export JSON în `monitoring/dashboards/`)
+- Ajustează scrape interval în `monitoring/prometheus.yml`
+
 ## Utilizare
 
 ### 1. Interfața Web (Recomandat)

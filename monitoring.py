@@ -13,11 +13,46 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import socket
 import sys
 import os
+import prometheus_client
 
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(__file__))
 
 from legislatie_client import LegislatieClient
+
+# Prometheus metrics
+REQUEST_COUNTER = prometheus_client.Counter(
+    'legislatie_requests_total',
+    'Total number of search requests',
+    ['method', 'status']
+)
+REQUEST_DURATION = prometheus_client.Histogram(
+    'legislatie_request_duration_seconds',
+    'Duration of search requests',
+    ['method']
+)
+CACHE_HITS = prometheus_client.Counter(
+    'legislatie_cache_hits_total',
+    'Total cache hits'
+)
+CACHE_MISSES = prometheus_client.Counter(
+    'legislatie_cache_misses_total',
+    'Total cache misses'
+)
+ERROR_COUNTER = prometheus_client.Counter(
+    'legislatie_errors_total',
+    'Total errors',
+    ['type']
+)
+HEALTH_STATUS = prometheus_client.Gauge(
+    'legislatie_health_status',
+    'Health status (1=healthy, 0=unhealthy)',
+    ['component']
+)
+CACHE_SIZE = prometheus_client.Gauge(
+    'legislatie_cache_size',
+    'Current cache size in bytes'
+)
 
 
 class MetricsCollector:
@@ -42,6 +77,13 @@ class MetricsCollector:
             # Keep only last 100 checks
             if len(self.metrics["health_checks"]) > 100:
                 self.metrics["health_checks"] = self.metrics["health_checks"][-100:]
+        
+        # Update Prometheus health gauges
+        for component in ["soap", "scraper", "cache"]:
+            if component in health_data:
+                status = health_data[component].get("status", "unknown")
+                value = 1 if status == "healthy" else 0
+                HEALTH_STATUS.labels(component=component).set(value)
 
     def record_search_request(
         self, params: Dict[str, Any], duration: float, success: bool
@@ -61,6 +103,12 @@ class MetricsCollector:
                 self.metrics["search_requests"] = self.metrics["search_requests"][
                     -1000:
                 ]
+        
+        # Update Prometheus metrics (outside lock to avoid blocking)
+        method = params.get("method", "search")
+        status = "success" if success else "failure"
+        REQUEST_COUNTER.labels(method=method, status=status).inc()
+        REQUEST_DURATION.labels(method=method).observe(duration)
 
     def record_cache_stats(self, stats: Dict[str, Any]):
         """Record cache statistics."""
@@ -71,6 +119,10 @@ class MetricsCollector:
             # Keep only last 100 stats
             if len(self.metrics["cache_stats"]) > 100:
                 self.metrics["cache_stats"] = self.metrics["cache_stats"][-100:]
+        
+        # Update Prometheus cache metrics
+        if "size" in stats:
+            CACHE_SIZE.set(stats["size"])
 
     def record_error(self, error_type: str, message: str, details: Any = None):
         """Record an error."""
@@ -86,6 +138,9 @@ class MetricsCollector:
             # Keep only last 100 errors
             if len(self.metrics["errors"]) > 100:
                 self.metrics["errors"] = self.metrics["errors"][-100:]
+        
+        # Update Prometheus error counter
+        ERROR_COUNTER.labels(type=error_type).inc()
 
     def get_summary_metrics(self) -> Dict[str, Any]:
         """Calculate summary metrics from collected data."""
@@ -236,12 +291,10 @@ class MonitoringHandler(BaseHTTPRequestHandler):
     def _handle_prometheus_metrics(self):
         """Return Prometheus format metrics."""
         try:
-            metrics = collector.get_prometheus_metrics()
-
             self.send_response(200)
             self.send_header("Content-Type", "text/plain; version=0.0.4")
             self.end_headers()
-            self.wfile.write(metrics.encode("utf-8"))
+            self.wfile.write(prometheus_client.generate_latest(prometheus_client.REGISTRY))
         except Exception as e:
             collector.record_error("prometheus_metrics_failed", str(e))
             self.send_error(500, f"Prometheus metrics failed: {e}")
