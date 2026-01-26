@@ -1,8 +1,8 @@
 # Legislatie.just.ro API Client & Interface
 
-![Python CI](https://github.com/OWNER/REPO/actions/workflows/python-ci.yml/badge.svg)
+![Python CI](https://github.com/neanicu/legislatie_api/actions/workflows/python-ci.yml/badge.svg)
 
-*Replace OWNER/REPO with your GitHub repository.*
+
 
 Acest proiect oferă acces la serviciul web SOAP `legislatie.just.ro` printr-un script Python și o interfață web modernă. Sistemul implementează o **strategie de fallback inteligentă** care trece automat de la API-ul SOAP defect la scraping HTML, asigurând acces continuu la date chiar și atunci când serverul oficial are probleme interne (Solr).
 
