@@ -45,7 +45,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.legislatie.rule=Host(`legislatie_api.logiqo.ro`)"
       - "traefik.http.routers.legislatie.entrypoints=websecure"
-      - "traefik.http.routers.legislatie.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.legislatie.tls.certresolver=le"
       - "traefik.http.services.legislatie.loadbalancer.server.port=8501"
       - "traefik.docker.network=web"
     networks:
