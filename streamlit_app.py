@@ -659,7 +659,7 @@ def main():
                                     else "Fara text"
                                 ),
                                 height=150,
-                                key=f"text_area_{idx}",
+                                key=f"text_area_{idx}_{hash(item.get('Titlu', '') + str(item.get('Numar', '')))}",
                             )
             else:
                 st.warning("Nu au fost gasite rezultate pe aceasta pagina.")
