@@ -47,6 +47,9 @@ services:
       - "traefik.http.routers.legislatie.entrypoints=websecure"
       - "traefik.http.routers.legislatie.tls.certresolver=le"
       - "traefik.http.services.legislatie.loadbalancer.server.port=8501"
+      # WebSocket support for Streamlit
+      - "traefik.http.middlewares.legislatie-headers.headers.customrequestheaders.X-Forwarded-Proto=https"
+      - "traefik.http.routers.legislatie.middlewares=legislatie-headers"
       - "traefik.docker.network=web"
     networks:
       - web
