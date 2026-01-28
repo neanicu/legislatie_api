@@ -46,7 +46,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Create non-root user for security
 RUN addgroup --system --gid 1001 appgroup && \
-    adduser --system --uid 1001 --gid 1001 --no-create-home appuser
+    adduser --system --uid 1001 --gid 1001 --home /home/appuser --no-create-home appuser
+
+ENV HOME=/home/appuser
+ENV PYTHONPATH=/home/appuser/.local/lib/python3.9/site-packages
 
 # Set working directory
 WORKDIR /app

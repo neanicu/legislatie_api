@@ -1,7 +1,7 @@
 # Docker Compose configuration for Romanian Legislative API Client
 # Supports development and production profiles
 
-version: '3.8'
+
 
 services:
   # Main application service
@@ -15,9 +15,9 @@ services:
     profiles:
       - production
       - development
-    ports:
-      - "${STREAMLIT_PORT:-8501}:8501"
-      - "${METRICS_PORT:-9090}:9090"
+    expose:
+      - "8501"
+      - "9090"
     environment:
       - TZ=Europe/Bucharest
       - LEGISLATIE_WSDL_URL=${LEGISLATIE_WSDL_URL:-https://legislatie.just.ro/apiws/FreeWebService.svc?wsdl}
@@ -34,14 +34,22 @@ services:
       - LEGISLATIE_LOG_FILE=${LEGISLATIE_LOG_FILE:-/app/logs/legislatie.log}
     volumes:
       - legislatie-cache:/.legislatie_cache
-      - ./logs:/app/logs:rw
+      - /srv/legislatie_api/logs:/app/logs:rw
     healthcheck:
       test: ["CMD", "python", "-c", "import legislatie_client, cache, config; print('ok')"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 30s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.legislatie.rule=Host(`legislatie_api.logiqo.ro`)"
+      - "traefik.http.routers.legislatie.entrypoints=websecure"
+      - "traefik.http.routers.legislatie.tls.certresolver=letsencrypt"
+      - "traefik.http.services.legislatie.loadbalancer.server.port=8501"
+      - "traefik.docker.network=web"
     networks:
+      - web
       - legislatie-network
 
 
@@ -191,6 +199,8 @@ volumes:
 
 # Networks
 networks:
+  web:
+    external: true
   legislatie-network:
     name: legislatie-network
     driver: bridge
