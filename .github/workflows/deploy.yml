@@ -74,7 +74,7 @@ jobs:
             mkdir -p logs
             
             # Build and restart containers
-            docker-compose --profile production up -d --build
+            docker compose --profile production up -d --build
             
             # Clean up old images
             docker image prune -f
