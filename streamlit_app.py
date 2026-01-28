@@ -378,6 +378,18 @@ def main():
     # Buton Cautare
     search_clicked = st.sidebar.button("🔍 Cauta", type="primary")
 
+    # Branding Footer
+    st.sidebar.markdown("---")
+    st.sidebar.markdown(
+        """
+        <div style='text-align: center; color: #666; font-size: 0.8em;'>
+            Dezvoltat de <b>LOGIQO SRL</b><br>
+            <a href='mailto:contact@logiqo.ro' style='color: #666; text-decoration: none;'>contact@logiqo.ro</a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     # Functie callback pentru notificari non-blocante
     def status_notifier(msg):
         st.toast(msg, icon="🔄")
