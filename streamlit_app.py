@@ -377,6 +377,9 @@ def main():
 
     # Buton Cautare
     search_clicked = st.sidebar.button("🔍 Cauta", type="primary")
+    
+    if search_clicked:
+        st.session_state.page = 0
 
     # Branding Footer
     st.sidebar.markdown("---")
@@ -585,75 +588,79 @@ def main():
                     except Exception as e:
                         st.warning(f"A apărut o eroare la sortare: {e}")
 
-                # Actualizam mesajul de succes
-                total_gasite = len(data_enriched)
-                if total_gasite > 0:
-                    st.success(f"Afisate {total_gasite} rezultate.")
+                # Container pentru rezultate pentru a evita artefacte vizuale
+                results_container = st.container()
+                
+                with results_container:
+                    # Actualizam mesajul de succes
+                    total_gasite = len(data_enriched)
+                    if total_gasite > 0:
+                        st.success(f"Afisate {total_gasite} rezultate.")
 
-                    # Export functionality
-                    st.subheader("Export Rezultate")
-                    col1, col2 = st.columns(2)
+                        # Export functionality
+                        st.subheader("Export Rezultate")
+                        col1, col2 = st.columns(2)
 
-                    with col1:
-                        # CSV Export
-                        df = pd.DataFrame(data_enriched)
-                        csv_data = df.to_csv(index=False, encoding="utf-8-sig")
-                        st.download_button(
-                            label="📥 Descarcă CSV",
-                            data=csv_data,
-                            file_name=f"legislatie_rezultate_{datetime.date.today()}.csv",
-                            mime="text/csv",
-                            key="export_csv",
-                        )
+                        with col1:
+                            # CSV Export
+                            df = pd.DataFrame(data_enriched)
+                            csv_data = df.to_csv(index=False, encoding="utf-8-sig")
+                            st.download_button(
+                                label="📥 Descarcă CSV",
+                                data=csv_data,
+                                file_name=f"legislatie_rezultate_{datetime.date.today()}.csv",
+                                mime="text/csv",
+                                key="export_csv",
+                            )
 
-                    with col2:
-                        # JSON Export
-                        json_data = json.dumps(
-                            data_enriched, indent=2, ensure_ascii=False
-                        )
-                        st.download_button(
-                            label="📥 Descarcă JSON",
-                            data=json_data,
-                            file_name=f"legislatie_rezultate_{datetime.date.today()}.json",
-                            mime="application/json",
-                            key="export_json",
-                        )
+                        with col2:
+                            # JSON Export
+                            json_data = json.dumps(
+                                data_enriched, indent=2, ensure_ascii=False
+                            )
+                            st.download_button(
+                                label="📥 Descarcă JSON",
+                                data=json_data,
+                                file_name=f"legislatie_rezultate_{datetime.date.today()}.json",
+                                mime="application/json",
+                                key="export_json",
+                            )
 
-                    st.divider()
-                else:
-                    st.warning("Niciun rezultat nu corespunde filtrelor selectate.")
+                        st.divider()
+                    else:
+                        st.warning("Niciun rezultat nu corespunde filtrelor selectate.")
 
-                for idx, item in enumerate(data_enriched):
-                    # Afisam si Tipul Actului in header
-                    tip_act_str = item.get("TipAct", "")
-                    tip_label = f"[{tip_act_str}] " if tip_act_str else ""
+                    for idx, item in enumerate(data_enriched):
+                        # Afisam si Tipul Actului in header
+                        tip_act_str = item.get("TipAct", "")
+                        tip_label = f"[{tip_act_str}] " if tip_act_str else ""
 
-                    with st.expander(
-                        f"{tip_label}{item['Data']} | {item['Emitent']} | Nr. {item['Numar']}"
-                    ):
-                        st.subheader(item["Titlu"])
+                        with st.expander(
+                            f"{tip_label}{item['Data']} | {item['Emitent']} | Nr. {item['Numar']}"
+                        ):
+                            st.subheader(item["Titlu"])
 
-                        # Afișare Publicație
-                        if item.get("Publicatie"):
-                            st.caption(f"📰 {item['Publicatie']}")
+                            # Afișare Publicație
+                            if item.get("Publicatie"):
+                                st.caption(f"📰 {item['Publicatie']}")
 
-                        col_btns = st.columns([1, 4])
-                        with col_btns[0]:
-                            if st.button("📖 Deschide Text", key=f"btn_open_{idx}"):
-                                show_full_text_dialog(item)
+                            col_btns = st.columns([1, 4])
+                            with col_btns[0]:
+                                if st.button("📖 Deschide Text", key=f"btn_open_{idx}"):
+                                    show_full_text_dialog(item)
 
-                        if item["Link"]:
-                            st.markdown(f"[Link Oficial]({item['Link']})")
-                        st.text_area(
-                            "Text Preview",
-                            (
-                                item["Text"][:1000] + "..."
-                                if item["Text"]
-                                else "Fara text"
-                            ),
-                            height=150,
-                            key=f"text_area_{idx}",
-                        )
+                            if item["Link"]:
+                                st.markdown(f"[Link Oficial]({item['Link']})")
+                            st.text_area(
+                                "Text Preview",
+                                (
+                                    item["Text"][:1000] + "..."
+                                    if item["Text"]
+                                    else "Fara text"
+                                ),
+                                height=150,
+                                key=f"text_area_{idx}",
+                            )
             else:
                 st.warning("Nu au fost gasite rezultate pe aceasta pagina.")
 
