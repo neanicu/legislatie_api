@@ -72,7 +72,7 @@ Acest proiect include un dashboard de monitoring bazat pe Prometheus și Grafana
 ### Pornire dashboard:
 
 ```bash
-docker-compose --profile monitoring up -d
+docker compose --profile monitoring up -d
 ```
 
 Accesează:

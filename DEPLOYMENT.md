@@ -31,7 +31,7 @@ git clone https://github.com/yourusername/legislatie_api.git
 cd legislatie_api
 
 # Build and run with Docker Compose
-docker-compose up --build
+docker compose up --build
 ```
 
 The application will be available at `http://localhost:8501`.
@@ -58,10 +58,10 @@ docker run -d \
 
 The project includes multiple Docker Compose profiles:
 
-- **Production**: `docker-compose --profile production up`
-- **Development**: `docker-compose --profile development up`
-- **Testing**: `docker-compose --profile test up`
-- **Monitoring**: `docker-compose --profile monitoring up`
+- **Production**: `docker compose --profile production up`
+- **Development**: `docker compose --profile development up`
+- **Testing**: `docker compose --profile test up`
+- **Monitoring**: `docker compose --profile monitoring up`
 
 ### Health Checks
 
