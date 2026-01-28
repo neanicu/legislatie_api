@@ -1,0 +1,2 @@
+Method,Name,Error,Occurrences
+SEARCH,search/advanced_search,Exception('CRITICAL SERVER ERROR: Both the legislative API and Website search are unavailable. The remote server (legislatie.just.ro) is experiencing internal connectivity issues (Solr). Please try again later.'),2

@@ -5,9 +5,12 @@ Test that Streamlit app imports correctly.
 
 import sys
 import os
+import pytest
 
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(__file__))
+
+pytestmark = pytest.mark.integration
 
 try:
     from streamlit_app import (

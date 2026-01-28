@@ -36,6 +36,11 @@ def clean_legislatie_text(text):
     return "\n\n".join(cleaned_lines)
 
 
+@st.cache_resource
+def init_client():
+    return LegislatieClient()
+
+
 def generate_akoma_ntoso(item, clean_text):
     """
     Genereaza o structura XML Akoma Ntoso 3.0 simplificata din textul legislativ.
@@ -380,11 +385,11 @@ def main():
     # Initializare client (cache resource pentru performanta la incarcare WSDL)
     # Folosim st.cache_resource doar pentru initializarea grea, dar instanta trebuie sa fie in session_state pentru a pastra tokenul
     if "client" not in st.session_state:
-        # Initializam clientul cu callback-ul nostru
-        st.session_state.client = LegislatieClient(status_callback=status_notifier)
+        st.session_state.client = init_client()
 
     try:
         client = st.session_state.client
+        client.status_callback = status_notifier
 
         with st.spinner(f"Se incarca {results_per_page} rezultate..."):
             # Calculam paginile de server necesare
@@ -496,7 +501,7 @@ def main():
                     if total_reqs > 1:
                         progress_bar.progress(
                             (i + 1) / total_reqs,
-                            text=f"Incarcare set {i+1}/{total_reqs}...",
+                            text=f"Incarcare set {i + 1}/{total_reqs}...",
                         )
 
                     batch_results = client.search(

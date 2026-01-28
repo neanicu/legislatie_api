@@ -7,7 +7,7 @@ import time
 import hashlib
 import pickle
 import os
-from typing import Any, Optional
+from typing import Any, Optional, Callable
 import logging
 
 try:
@@ -38,6 +38,8 @@ class LegislatieCache:
             ttl: Time-to-live in seconds
         """
         self.ttl = ttl
+        self._on_hit: Optional[Callable[[], None]] = None
+        self._on_miss: Optional[Callable[[], None]] = None
 
         if use_persistent and DISKCACHE_AVAILABLE:
             self._cache_type = "diskcache"
@@ -98,22 +100,30 @@ class LegislatieCache:
         try:
             if self._cache_type == "diskcache":
                 if key not in self._cache:
+                    if self._on_miss:
+                        self._on_miss()
                     return None
                 item = self._cache[key]
             else:
                 item = self._cache.get(key)
 
-            if not item:
+            if item is None:
+                if self._on_miss:
+                    self._on_miss()
                 return None
 
             timestamp, value = item
             if time.time() - timestamp < self.ttl:
                 logger.debug(f"Cache hit for key {key[:16]}...")
+                if self._on_hit:
+                    self._on_hit()
                 return value
             else:
                 # Expired, remove from cache
                 self.delete(key)
                 logger.debug(f"Cache expired for key {key[:16]}...")
+                if self._on_miss:
+                    self._on_miss()
                 return None
         except Exception as e:
             logger.warning(f"Error retrieving from cache: {e}")
@@ -124,7 +134,7 @@ class LegislatieCache:
         try:
             item = (time.time(), value)
             if self._cache_type == "diskcache":
-                self._cache[key] = item
+                self._cache.set(key, item, expire=self.ttl)
             else:
                 self._cache[key] = item
             logger.debug(f"Cache set for key {key[:16]}...")
@@ -132,6 +142,15 @@ class LegislatieCache:
         except Exception as e:
             logger.warning(f"Error storing in cache: {e}")
             return False
+
+    def set_metrics_callbacks(
+        self,
+        on_hit: Optional[Callable[[], None]] = None,
+        on_miss: Optional[Callable[[], None]] = None,
+    ) -> None:
+        """Set callbacks for cache hit/miss metrics."""
+        self._on_hit = on_hit
+        self._on_miss = on_miss
 
     def delete(self, key: str) -> bool:
         """Delete item from cache."""

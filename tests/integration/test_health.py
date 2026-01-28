@@ -5,7 +5,10 @@ Test health check for Legislatie API Client.
 
 import sys
 import json
+import pytest
 from legislatie_client import LegislatieClient
+
+pytestmark = pytest.mark.integration
 
 
 def main():

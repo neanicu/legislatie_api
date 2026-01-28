@@ -65,8 +65,6 @@ class LegislatieUser(User):
             "numar": str(random.randint(1, 100)) if random.random() > 0.7 else None,
             "text": random.choice(["contract de muncă", "cod fiscal", "procedură civilă"]),
             "titlu": random.choice(["LEGE", "HOTĂRÂRE", "ORDONANȚĂ"]),
-            "tip_act": random.choice(["LEGE", "HOTĂRÂRE", "ORDIN"]) if random.random() > 0.8 else None,
-            "publicatie": "Monitorul Oficial" if random.random() > 0.9 else None,
         }
         self._execute_search(params, "advanced_search")
         
@@ -132,11 +130,11 @@ class LegislatieUser(User):
     
     def log(self, message: str):
         """Helper for logging."""
-        print(f"[User{self.id}] {message}")
+        print(f"[User{id(self)}] {message}")
         
     def context(self) -> Dict[str, Any]:
         """Return context for request events."""
-        return {"user_id": self.id}
+        return {"user_id": id(self)}
 
 
 @events.init.add_listener

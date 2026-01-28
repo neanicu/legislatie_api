@@ -39,12 +39,12 @@ jobs:
 
     - name: Run tests
       run: |
-        python -m pytest tests/ --tb=short -v
+        python -m pytest tests/ -m "not integration" --tb=short -v
 
     - name: Run tests with coverage (Python 3.10 only)
       if: matrix.python-version == '3.10'
       run: |
-        python -m pytest tests/ --cov=. --cov-report=term-missing --cov-report=xml --tb=short -v
+        python -m pytest tests/ -m "not integration" --cov=. --cov-report=term-missing --cov-report=xml --tb=short -v
 
     - name: Upload coverage to Codecov
       if: matrix.python-version == '3.10'

@@ -1,0 +1,2 @@
+Method,Name,Error,Occurrences
+SEARCH,search/advanced_search,"TypeError(""LegislatieClient.search() got an unexpected keyword argument 'tip_act'"")",1

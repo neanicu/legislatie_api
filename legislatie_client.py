@@ -5,6 +5,8 @@ from zeep.exceptions import Fault
 from zeep.transports import Transport
 import requests
 import logging
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 from legislatie_scraper import LegislatieScraper
 import config
@@ -26,6 +28,17 @@ class LegislatieClient:
 
         # Configure session with headers
         session = requests.Session()
+
+        retries = Retry(
+            total=config.MAX_RETRIES,
+            backoff_factor=1,
+            status_forcelist=[500, 502, 503, 504],
+            allowed_methods=["GET", "POST"],
+            raise_on_status=False,
+        )
+        adapter = HTTPAdapter(max_retries=retries)
+        session.mount("https://", adapter)
+        session.mount("http://", adapter)
 
         # Custom Transport cu timeout de 30 secunde pentru a evita blocajele infinite
         self.transport = Transport(session=session, timeout=config.SOAP_TIMEOUT)
@@ -240,9 +253,9 @@ class LegislatieClient:
             health_report["soap_api"]["response_time"] = elapsed
             if token:
                 health_report["soap_api"]["status"] = "healthy"
-                health_report["soap_api"][
-                    "details"
-                ] = f"Token obtained in {elapsed:.2f}s"
+                health_report["soap_api"]["details"] = (
+                    f"Token obtained in {elapsed:.2f}s"
+                )
             else:
                 health_report["soap_api"]["status"] = "unhealthy"
                 health_report["soap_api"]["details"] = "Failed to obtain token"
@@ -262,14 +275,14 @@ class LegislatieClient:
             health_report["scraper"]["response_time"] = elapsed
             if isinstance(results, list):
                 health_report["scraper"]["status"] = "healthy"
-                health_report["scraper"][
-                    "details"
-                ] = f"Retrieved {len(results)} results in {elapsed:.2f}s"
+                health_report["scraper"]["details"] = (
+                    f"Retrieved {len(results)} results in {elapsed:.2f}s"
+                )
             else:
                 health_report["scraper"]["status"] = "unhealthy"
-                health_report["scraper"][
-                    "details"
-                ] = f"Unexpected result type: {type(results)}"
+                health_report["scraper"]["details"] = (
+                    f"Unexpected result type: {type(results)}"
+                )
 
         # Check Cache
         try:

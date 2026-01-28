@@ -31,12 +31,12 @@ services:
       - LEGISLATIE_REQUEST_TIMEOUT=${LEGISLATIE_REQUEST_TIMEOUT:-30}
       - LEGISLATIE_SOAP_TIMEOUT=${LEGISLATIE_SOAP_TIMEOUT:-30}
       - LEGISLATIE_LOG_LEVEL=${LEGISLATIE_LOG_LEVEL:-INFO}
-      - LEGISLATIE_LOG_FILE=${LEGISLATIE_LOG_FILE:-/app/legislatie.log}
+      - LEGISLATIE_LOG_FILE=${LEGISLATIE_LOG_FILE:-/app/logs/legislatie.log}
     volumes:
       - legislatie-cache:/.legislatie_cache
       - ./logs:/app/logs:rw
     healthcheck:
-      test: ["CMD", "python", "-c", "from legislatie_client import LegislatieClient; client = LegislatieClient(); health = client.check_health(); exit(0 if health['overall'] == 'healthy' else 1)"]
+      test: ["CMD", "python", "-c", "import legislatie_client, cache, config; print('ok')"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -22,36 +22,25 @@ from legislatie_client import LegislatieClient
 
 # Prometheus metrics
 REQUEST_COUNTER = prometheus_client.Counter(
-    'legislatie_requests_total',
-    'Total number of search requests',
-    ['method', 'status']
+    "legislatie_requests_total", "Total number of search requests", ["method", "status"]
 )
 REQUEST_DURATION = prometheus_client.Histogram(
-    'legislatie_request_duration_seconds',
-    'Duration of search requests',
-    ['method']
+    "legislatie_request_duration_seconds", "Duration of search requests", ["method"]
 )
 CACHE_HITS = prometheus_client.Counter(
-    'legislatie_cache_hits_total',
-    'Total cache hits'
+    "legislatie_cache_hits_total", "Total cache hits"
 )
 CACHE_MISSES = prometheus_client.Counter(
-    'legislatie_cache_misses_total',
-    'Total cache misses'
+    "legislatie_cache_misses_total", "Total cache misses"
 )
 ERROR_COUNTER = prometheus_client.Counter(
-    'legislatie_errors_total',
-    'Total errors',
-    ['type']
+    "legislatie_errors_total", "Total errors", ["type"]
 )
 HEALTH_STATUS = prometheus_client.Gauge(
-    'legislatie_health_status',
-    'Health status (1=healthy, 0=unhealthy)',
-    ['component']
+    "legislatie_health_status", "Health status (1=healthy, 0=unhealthy)", ["component"]
 )
 CACHE_SIZE = prometheus_client.Gauge(
-    'legislatie_cache_size',
-    'Current cache size in bytes'
+    "legislatie_cache_size", "Current cache size in bytes"
 )
 
 
@@ -77,13 +66,18 @@ class MetricsCollector:
             # Keep only last 100 checks
             if len(self.metrics["health_checks"]) > 100:
                 self.metrics["health_checks"] = self.metrics["health_checks"][-100:]
-        
+
         # Update Prometheus health gauges
-        for component in ["soap", "scraper", "cache"]:
-            if component in health_data:
-                status = health_data[component].get("status", "unknown")
+        component_map = {
+            "soap_api": "soap",
+            "scraper": "scraper",
+            "cache": "cache",
+        }
+        for key, label in component_map.items():
+            if key in health_data:
+                status = health_data[key].get("status", "unknown")
                 value = 1 if status == "healthy" else 0
-                HEALTH_STATUS.labels(component=component).set(value)
+                HEALTH_STATUS.labels(component=label).set(value)
 
     def record_search_request(
         self, params: Dict[str, Any], duration: float, success: bool
@@ -103,7 +97,7 @@ class MetricsCollector:
                 self.metrics["search_requests"] = self.metrics["search_requests"][
                     -1000:
                 ]
-        
+
         # Update Prometheus metrics (outside lock to avoid blocking)
         method = params.get("method", "search")
         status = "success" if success else "failure"
@@ -119,7 +113,7 @@ class MetricsCollector:
             # Keep only last 100 stats
             if len(self.metrics["cache_stats"]) > 100:
                 self.metrics["cache_stats"] = self.metrics["cache_stats"][-100:]
-        
+
         # Update Prometheus cache metrics
         if "size" in stats:
             CACHE_SIZE.set(stats["size"])
@@ -138,7 +132,7 @@ class MetricsCollector:
             # Keep only last 100 errors
             if len(self.metrics["errors"]) > 100:
                 self.metrics["errors"] = self.metrics["errors"][-100:]
-        
+
         # Update Prometheus error counter
         ERROR_COUNTER.labels(type=error_type).inc()
 
@@ -208,40 +202,56 @@ class MetricsCollector:
         metrics = []
 
         # Uptime
-        metrics.append(f'legislatie_uptime_seconds {summary["uptime_seconds"]}')
+        metrics.append(f"legislatie_uptime_seconds {summary['uptime_seconds']}")
 
         # Health status (1 = healthy, 0 = unhealthy, -1 = unknown)
         health_map = {"healthy": 1, "unhealthy": 0, "unknown": -1}
         metrics.append(
-            f'legislatie_health_status {health_map.get(summary["overall_health"], -1)}'
+            f"legislatie_health_status {health_map.get(summary['overall_health'], -1)}"
         )
 
         # Search requests
         metrics.append(
-            f'legislatie_search_requests_total {summary["search_requests_total"]}'
+            f"legislatie_search_requests_total {summary['search_requests_total']}"
         )
         metrics.append(
-            f'legislatie_search_success_rate {summary["search_success_rate"]}'
+            f"legislatie_search_success_rate {summary['search_success_rate']}"
         )
         metrics.append(
-            f'legislatie_search_avg_duration_seconds {summary["search_avg_duration_seconds"]}'
+            f"legislatie_search_avg_duration_seconds {summary['search_avg_duration_seconds']}"
         )
 
         # Cache
-        metrics.append(f'legislatie_cache_size {summary["cache_size"]}')
+        metrics.append(f"legislatie_cache_size {summary['cache_size']}")
         cache_type_map = {"memory": 0, "diskcache": 1, "unknown": 2}
         metrics.append(
-            f'legislatie_cache_type {cache_type_map.get(summary["cache_type"], 2)}'
+            f"legislatie_cache_type {cache_type_map.get(summary['cache_type'], 2)}"
         )
 
         # Errors
-        metrics.append(f'legislatie_errors_last_hour {summary["errors_last_hour"]}')
+        metrics.append(f"legislatie_errors_last_hour {summary['errors_last_hour']}")
 
         return "\n".join(metrics)
 
 
 # Global metrics collector
 collector = MetricsCollector()
+_client_instance = None
+_client_lock = threading.Lock()
+
+
+def get_client() -> LegislatieClient:
+    global _client_instance
+    if _client_instance is None:
+        with _client_lock:
+            if _client_instance is None:
+                _client_instance = LegislatieClient()
+                if hasattr(_client_instance, "cache"):
+                    _client_instance.cache.set_metrics_callbacks(
+                        on_hit=CACHE_HITS.inc,
+                        on_miss=CACHE_MISSES.inc,
+                    )
+    return _client_instance
 
 
 class MonitoringHandler(BaseHTTPRequestHandler):
@@ -263,7 +273,7 @@ class MonitoringHandler(BaseHTTPRequestHandler):
     def _handle_health(self):
         """Return detailed health check."""
         try:
-            client = LegislatieClient()
+            client = get_client()
             health = client.check_health()
             collector.record_health_check(health)
 
@@ -294,7 +304,9 @@ class MonitoringHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "text/plain; version=0.0.4")
             self.end_headers()
-            self.wfile.write(prometheus_client.generate_latest(prometheus_client.REGISTRY))
+            self.wfile.write(
+                prometheus_client.generate_latest(prometheus_client.REGISTRY)
+            )
         except Exception as e:
             collector.record_error("prometheus_metrics_failed", str(e))
             self.send_error(500, f"Prometheus metrics failed: {e}")
@@ -352,6 +364,12 @@ def instrument_client(client: LegislatieClient) -> LegislatieClient:
     """Instrument a LegislatieClient to record metrics."""
     original_search = client.search
 
+    if hasattr(client, "cache"):
+        client.cache.set_metrics_callbacks(
+            on_hit=CACHE_HITS.inc,
+            on_miss=CACHE_MISSES.inc,
+        )
+
     def instrumented_search(*args, **kwargs):
         start_time = time.time()
         try:
@@ -390,7 +408,7 @@ if __name__ == "__main__":
         def health_check_loop():
             while True:
                 try:
-                    client = LegislatieClient()
+                    client = get_client()
                     health = client.check_health()
                     collector.record_health_check(health)
 

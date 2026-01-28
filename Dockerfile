@@ -80,7 +80,7 @@ EXPOSE 8501
 
 # Health check for application
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "from legislatie_client import LegislatieClient; client = LegislatieClient(); health = client.check_health(); exit(0 if health['overall'] == 'healthy' else 1)"
+    CMD python -c "import legislatie_client, cache, config; print('ok')"
 
 # Default command: run Streamlit app
 CMD ["./start.sh"]
