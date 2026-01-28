@@ -43,7 +43,7 @@ services:
       start_period: 30s
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.legislatie.rule=Host(`legislatie_api.logiqo.ro`)"
+      - "traefik.http.routers.legislatie.rule=Host(`legislatie-api.logiqo.ro`)"
       - "traefik.http.routers.legislatie.entrypoints=websecure"
       - "traefik.http.routers.legislatie.tls.certresolver=le"
       - "traefik.http.services.legislatie.loadbalancer.server.port=8501"
