@@ -63,10 +63,11 @@ RUN chown -R appuser:appgroup /home/appuser/.local
 # Copy application code
 COPY . .
 
-# Create cache directory with proper permissions
+# Create cache directory with proper permissions and make start.sh executable
 RUN mkdir -p /.legislatie_cache && \
     chown -R appuser:appgroup /.legislatie_cache && \
-    chmod 755 /.legislatie_cache
+    chmod 755 /.legislatie_cache && \
+    chmod +x start.sh
 
 # Switch to non-root user
 USER appuser
