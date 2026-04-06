@@ -42,6 +42,8 @@ class LegislatieClient:
 
         # Custom Transport cu timeout de 30 secunde pentru a evita blocajele infinite
         self.transport = Transport(session=session, timeout=config.SOAP_TIMEOUT)
+        # Set User-Agent AFTER Transport init (zeep overwrites it)
+        session.headers["User-Agent"] = "Mozilla/5.0 (compatible; LegislatieAPI/1.0)"
 
         self.client = Client(
             wsdl=self.WSDL_URL, settings=settings, transport=self.transport
